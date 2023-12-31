@@ -1,0 +1,6 @@
+name: PlotMarkers
+main: com.bobcat00.plotmarkers.PlotMarkers
+version: ${project.version}
+author: Bobcat00
+api-version: 1.19
+depend: [BlueMap,PlotSquared]
