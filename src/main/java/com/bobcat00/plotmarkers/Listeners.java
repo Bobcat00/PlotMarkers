@@ -154,7 +154,7 @@ public final class Listeners implements Listener
     
     private void createMarker(int idX, int idZ, UUID owner)
     {
-        plugin.getLogger().info("Creating marker " + idX + ", " + idZ + ", " + owner.toString());
+        // plugin.getLogger().info("Creating marker " + idX + ", " + idZ + ", " + owner.toString());
         
         int x = 80 * idX - 40;
         int z = 80 * idZ - 40;
@@ -189,7 +189,7 @@ public final class Listeners implements Listener
     
     private void removeMarker(int idX, int idZ)
     {
-        plugin.getLogger().info("Removing marker " + idX + ", " + idZ);
+        // plugin.getLogger().info("Removing marker " + idX + ", " + idZ);
         
         int x = 80 * idX - 40;
         int z = 80 * idZ - 40;
