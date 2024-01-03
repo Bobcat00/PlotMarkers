@@ -28,9 +28,8 @@ import org.bukkit.event.Listener;
 
 import com.google.common.eventbus.Subscribe;
 import com.plotsquared.core.PlotAPI;
-import com.plotsquared.core.events.PlayerAutoPlotsChosenEvent;
-import com.plotsquared.core.events.PlayerClaimPlotEvent;
-import com.plotsquared.core.events.PlotChangeOwnerEvent;
+import com.plotsquared.core.events.PlotClaimedNotifyEvent;
+import com.plotsquared.core.events.post.PostPlotChangeOwnerEvent;
 import com.plotsquared.core.events.post.PostPlotDeleteEvent;
 import com.plotsquared.core.plot.Plot;
 import com.plotsquared.core.plot.PlotId;
@@ -41,6 +40,7 @@ import de.bluecolored.bluemap.api.markers.POIMarker;
 
 public final class Listeners implements Listener
 {
+    @SuppressWarnings("unused")
     private PlotMarkers plugin;
     
     // Only output messages in this world
@@ -99,29 +99,14 @@ public final class Listeners implements Listener
     
     // -------------------------------------------------------------------------
     
-    // Handle /plot auto
+    // Handle /plot claim and /plot auto
     
     @Subscribe
-    public void onPlotAuto(PlayerAutoPlotsChosenEvent e)
+    public void onPlotClaimNotify(PlotClaimedNotifyEvent e)
     {
-        UUID owner = e.getPlotPlayer().getUUID();
-        
-        for (Plot plot : e.getPlots())
-        {
-            PlotId plotId = plot.getId();
-            createMarker(plotId.getX(), plotId.getY(), owner);
-        }
-    }
-    
-    // -------------------------------------------------------------------------
-    
-    // Handle /plot claim
-    
-    @Subscribe
-    public void onPlotClaim(PlayerClaimPlotEvent e)
-    {
-        UUID owner = e.getPlotPlayer().getUUID();
-        PlotId plotId = e.getPlot().getId();
+        Plot plot = e.getPlot();
+        PlotId plotId = plot.getId();
+        UUID owner = plot.getOwnerAbs();
         createMarker(plotId.getX(), plotId.getY(), owner);
     }
     
@@ -130,10 +115,11 @@ public final class Listeners implements Listener
     // Handle /plot setowner
     
     @Subscribe
-    public void onPlotChangeOwner(PlotChangeOwnerEvent e)
+    public void onPlotChangeOwner(PostPlotChangeOwnerEvent e)
     {
-        UUID owner = e.getNewOwner();
-        PlotId plotId = e.getPlot().getId();
+        Plot plot = e.getPlot();
+        PlotId plotId = plot.getId();
+        UUID owner = plot.getOwnerAbs();
         createMarker(plotId.getX(), plotId.getY(), owner);
     }
     
