@@ -1,4 +1,4 @@
-// PlotWelcome - Displays welcome message when entering a plot world
+// PlotMarkers - Add plot markers to BlueMap map
 // Copyright 2023 Bobcat00
 //
 // This program is free software: you can redistribute it and/or modify

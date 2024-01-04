@@ -1,4 +1,4 @@
-// PlotWelcome - Displays welcome message when entering a plot world
+// PlotMarkers - Add plot markers to BlueMap map
 // Copyright 2023 Bobcat00
 //
 // This program is free software: you can redistribute it and/or modify
@@ -16,6 +16,9 @@
 
 package com.bobcat00.plotmarkers;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -34,20 +37,23 @@ import com.plotsquared.core.events.post.PostPlotDeleteEvent;
 import com.plotsquared.core.plot.Plot;
 import com.plotsquared.core.plot.PlotId;
 
+import de.bluecolored.bluemap.api.AssetStorage;
 import de.bluecolored.bluemap.api.BlueMapAPI;
 import de.bluecolored.bluemap.api.markers.MarkerSet;
 import de.bluecolored.bluemap.api.markers.POIMarker;
 
 public final class Listeners implements Listener
 {
-    @SuppressWarnings("unused")
     private PlotMarkers plugin;
     
     // Only output messages in this world
     private final String plotworld = "plotworld";
     
+    private final String icon = "marker_tower_red.png";
+    
+    private String iconUrl; // icon file name with partial path
+    
     private PlotAPI psAPI;
-    //private BlueMapAPI bmAPI;
     
     // BlueMap marker set
     private MarkerSet markerSet;
@@ -70,6 +76,18 @@ public final class Listeners implements Listener
                 @Override
                 public void run()
                 {
+                    iconUrl = api.getMap(plotworld).get().getAssetStorage().getAssetUrl(icon);
+                    
+                    // Copy icon to asset storage
+                    try
+                    {
+                        copyIcon(api);
+                    }
+                    catch (IOException e)
+                    {
+                        plugin.getLogger().warning("IOException copying icon to asset storage.");
+                    }
+                    
                     // Create BlueMap marker set
                     markerSet = MarkerSet.builder()
                                          .label("Plots")
@@ -163,7 +181,7 @@ public final class Listeners implements Listener
                                             idX + ";" + idZ + "<br>" +
                                             firstPlayed + "<br>" +
                                             lastPlayed)
-                                    .icon("assets/marker_tower_red.png", 15, 33)
+                                    .icon(iconUrl, 15, 33)
                                     .build();
         
         markerSet.getMarkers().put(plotworld + x + z, marker);
@@ -181,6 +199,36 @@ public final class Listeners implements Listener
         int z = 80 * idZ - 40;
         
         markerSet.getMarkers().remove(plotworld + x + z);
+    }
+    
+    // -------------------------------------------------------------------------
+    
+    // Copy icon to BlueMap asset storage
+    
+    private void copyIcon(BlueMapAPI api) throws IOException
+    {
+        AssetStorage assetStorage = api.getMap(plotworld).get().getAssetStorage();
+        
+        // See if the icon is already there
+        if (assetStorage.assetExists(icon))
+        {
+            return;
+        }
+        
+        // Copy icon
+        InputStream in = plugin.getResource(icon);
+        OutputStream out = assetStorage.writeAsset(icon);
+        
+        byte[] buf = new byte[1024];
+        int len;
+        while ((len = in.read(buf)) > 0)
+        {
+            out.write(buf, 0, len);
+        }
+        out.close();
+        in.close();
+        
+        plugin.getLogger().info("Icon copied to map asset storage.");
     }
 
 }
