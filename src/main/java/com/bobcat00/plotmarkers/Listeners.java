@@ -34,6 +34,7 @@ import com.plotsquared.core.PlotAPI;
 import com.plotsquared.core.events.PlotClaimedNotifyEvent;
 import com.plotsquared.core.events.post.PostPlotChangeOwnerEvent;
 import com.plotsquared.core.events.post.PostPlotDeleteEvent;
+import com.plotsquared.core.location.Location;
 import com.plotsquared.core.plot.Plot;
 import com.plotsquared.core.plot.PlotId;
 
@@ -104,8 +105,7 @@ public final class Listeners implements Listener
                     int numMarkers = 0;
                     for (Plot plot : plots)
                     {
-                        PlotId plotId = plot.getId();
-                        createMarker(plotId.getX(), plotId.getY(), plot.getOwnerAbs());
+                        createMarker(plot);
                         ++numMarkers;
                     }
 
@@ -122,10 +122,7 @@ public final class Listeners implements Listener
     @Subscribe
     public void onPlotClaimNotify(PlotClaimedNotifyEvent e)
     {
-        Plot plot = e.getPlot();
-        PlotId plotId = plot.getId();
-        UUID owner = plot.getOwnerAbs();
-        createMarker(plotId.getX(), plotId.getY(), owner);
+        createMarker(e.getPlot());
     }
     
     // -------------------------------------------------------------------------
@@ -135,10 +132,7 @@ public final class Listeners implements Listener
     @Subscribe
     public void onPlotChangeOwner(PostPlotChangeOwnerEvent e)
     {
-        Plot plot = e.getPlot();
-        PlotId plotId = plot.getId();
-        UUID owner = plot.getOwnerAbs();
-        createMarker(plotId.getX(), plotId.getY(), owner);
+        createMarker(e.getPlot());
     }
     
     // -------------------------------------------------------------------------
@@ -148,21 +142,30 @@ public final class Listeners implements Listener
     @Subscribe
     public void onPlotDelete(PostPlotDeleteEvent e)
     {
-        PlotId plotId = e.getPlot().getId();
-        removeMarker(plotId.getX(), plotId.getY());
+        removeMarker(e.getPlot());
     }
     
     // -------------------------------------------------------------------------
     
     // Create a marker. This will overwrite any existing marker.
     
-    private void createMarker(int idX, int idZ, UUID owner)
+    private void createMarker(Plot plot)
     {
-        // plugin.getLogger().info("Creating marker " + idX + ", " + idZ + ", " + owner.toString());
+        // Calculate position and ID
         
-        int x = 80 * idX - 40;
-        int z = 80 * idZ - 40;
+        Location top = plot.getTopAbs();
+        Location bottom = plot.getBottomAbs();
+        double x = (top.getX() + bottom.getX()) / 2.0;
+        double y = 65.0; //(top.getY() + bottom.getY()) / 2.0;
+        double z = (top.getZ() + bottom.getZ()) / 2.0;
         
+        PlotId plotId = plot.getId();
+        int idX = plotId.getX();
+        int idZ = plotId.getY();
+        
+        // Get owner info
+        
+        UUID owner = plot.getOwnerAbs();
         OfflinePlayer player = Bukkit.getOfflinePlayer(owner);
         
         Calendar firstPlayedDate = new GregorianCalendar();
@@ -175,7 +178,7 @@ public final class Listeners implements Listener
         String lastPlayed = format1.format(lastPlayedDate.getTime());
         
         POIMarker marker = POIMarker.builder()
-                                    .position((x+0.5), 65.0, (z+0.5))
+                                    .position((x+0.5), y, (z+0.5))
                                     .label(player.getName())
                                     .detail(player.getName() + "<br>" +
                                             idX + ";" + idZ + "<br>" +
@@ -191,12 +194,12 @@ public final class Listeners implements Listener
     
     // Remove a marker
     
-    private void removeMarker(int idX, int idZ)
+    private void removeMarker(Plot plot)
     {
-        // plugin.getLogger().info("Removing marker " + idX + ", " + idZ);
-        
-        int x = 80 * idX - 40;
-        int z = 80 * idZ - 40;
+        Location top = plot.getTopAbs();
+        Location bottom = plot.getBottomAbs();
+        double x = (top.getX() + bottom.getX()) / 2.0;
+        double z = (top.getZ() + bottom.getZ()) / 2.0;
         
         markerSet.getMarkers().remove(plotworld + x + z);
     }
