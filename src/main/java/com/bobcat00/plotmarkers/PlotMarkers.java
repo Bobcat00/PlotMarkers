@@ -18,11 +18,20 @@ package com.bobcat00.plotmarkers;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.plotsquared.core.PlotAPI;
+
 public final class PlotMarkers extends JavaPlugin {
+    
+    Config config;
+    PlotAPI psAPI;
     
     @Override
     public void onEnable()
     {
+        psAPI = new PlotAPI();
+        
+        config = new Config(this);
+        
         getServer().getPluginManager().registerEvents(new Listeners(this), this);
     }
     
