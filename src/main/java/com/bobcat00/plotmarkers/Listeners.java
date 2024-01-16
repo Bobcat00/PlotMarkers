@@ -24,13 +24,13 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.event.Listener;
 
 import com.google.common.eventbus.Subscribe;
-import com.plotsquared.core.PlotAPI;
 import com.plotsquared.core.events.PlotClaimedNotifyEvent;
 import com.plotsquared.core.events.post.PostPlotChangeOwnerEvent;
 import com.plotsquared.core.events.post.PostPlotDeleteEvent;
@@ -46,26 +46,30 @@ import de.bluecolored.bluemap.api.markers.POIMarker;
 public final class Listeners implements Listener
 {
     private PlotMarkers plugin;
+    private BlueMapAPI bmAPI;
     
     // Only output messages in this world
-    private final String plotworld = "plotworld";
+    private Set<String> worlds;
+    //private final String plotworld = "plotworld";
     
     private final String icon = "marker_tower_red.png";
     
     private String iconUrl; // icon file name with partial path
     
-    private PlotAPI psAPI;
-    
     // BlueMap marker set
-    private MarkerSet markerSet;
+    private ConcurrentHashMap<String, MarkerSet> markerSets;
+    //private MarkerSet markerSet;
     
     // -------------------------------------------------------------------------
     
     public Listeners(PlotMarkers plugin)
     {
         this.plugin = plugin;
-        this.psAPI = new PlotAPI();
-        this.psAPI.registerListener(this);
+        plugin.psAPI.registerListener(this);
+        
+        // Get list of worlds from config file
+        
+        worlds = plugin.config.getWorlds();
 
         // Complicated BlueMap stuff due to the way they do the API
 
@@ -77,7 +81,10 @@ public final class Listeners implements Listener
                 @Override
                 public void run()
                 {
-                    iconUrl = api.getMap(plotworld).get().getAssetStorage().getAssetUrl(icon);
+                    bmAPI = api;
+                    markerSets = new ConcurrentHashMap<String, MarkerSet>();
+                    
+                    iconUrl = api.getMap("plotworld").get().getAssetStorage().getAssetUrl(icon);
                     
                     // Copy icon to asset storage
                     try
@@ -89,27 +96,47 @@ public final class Listeners implements Listener
                         plugin.getLogger().warning("IOException copying icon to asset storage.");
                     }
                     
-                    // Create BlueMap marker set
-                    markerSet = MarkerSet.builder()
-                                         .label("Plots")
-                                         .toggleable(true)
-                                         .defaultHidden(false)
-                                         .build();
-
-                    api.getMap(plotworld).get().getMarkerSets().put("plot-marker-set", markerSet);
+                    // Create a BlueMap marker set for each world
+                    for (String world : worlds)
+                    {
+                        if (api.getMap(world).isPresent())
+                        {
+                            MarkerSet markerSet = MarkerSet.builder()
+                                                           .label("Plots")
+                                                           .toggleable(true)
+                                                           .defaultHidden(false)
+                                                           .build();
+                            
+                            markerSets.put(world, markerSet);
+                            
+                            api.getMap(world).get().getMarkerSets().put(world+"-marker-set", markerSet);
+                        }
+                        else
+                        {
+                            plugin.getLogger().warning("No BlueMap definition for world " + world + ".");
+                            plugin.getLogger().warning("You defined a world for PlotMarkers but there is no corresponding map in BlueMap.");
+                        }
+                    }
 
                     // Get all the PlotSquared plots
-                    Set<Plot> plots = psAPI.getAllPlots();
+                    Set<Plot> plots = plugin.psAPI.getAllPlots();
 
                     // Create a marker for each plot
-                    int numMarkers = 0;
                     for (Plot plot : plots)
                     {
                         createMarker(plot);
-                        ++numMarkers;
+                    }
+                    
+                    for (String world : worlds)
+                    {
+                        if (api.getMap(world).isPresent())
+                        {
+                            int numMarkers = api.getMap(world).get().getMarkerSets().get(world+"-marker-set").getMarkers().size();
+                            plugin.getLogger().info("Created " + numMarkers + " marker" + (numMarkers == 1 ? " for " : "s for ") + world + ".");
+                        }
                     }
 
-                    plugin.getLogger().info("Created " + numMarkers + " markers.");
+                    
                 }
             });
         });
@@ -151,7 +178,14 @@ public final class Listeners implements Listener
     
     private void createMarker(Plot plot)
     {
+        if (!worlds.contains(plot.getWorldName()) ||
+            !bmAPI.getMap(plot.getWorldName()).isPresent())
+        {
+            return;
+        }
         // Calculate position and ID
+        
+        String world = plot.getWorldName();
         
         Location top = plot.getTopAbs();
         Location bottom = plot.getBottomAbs();
@@ -187,7 +221,8 @@ public final class Listeners implements Listener
                                     .icon(iconUrl, 15, 33)
                                     .build();
         
-        markerSet.getMarkers().put(plotworld + x + z, marker);
+        //markerSet.getMarkers().put(plotworld + x + z, marker);
+        bmAPI.getMap(world).get().getMarkerSets().get(world+"-marker-set").getMarkers().put(world + x + z, marker);
     }
     
     // -------------------------------------------------------------------------
@@ -196,12 +231,19 @@ public final class Listeners implements Listener
     
     private void removeMarker(Plot plot)
     {
+        if (!worlds.contains(plot.getWorldName()) ||
+            !bmAPI.getMap(plot.getWorldName()).isPresent())
+        {
+            return;
+        }
+        String world = plot.getWorldName();
         Location top = plot.getTopAbs();
         Location bottom = plot.getBottomAbs();
         double x = (top.getX() + bottom.getX()) / 2.0;
         double z = (top.getZ() + bottom.getZ()) / 2.0;
         
-        markerSet.getMarkers().remove(plotworld + x + z);
+        //markerSet.getMarkers().remove(plotworld + x + z);
+        bmAPI.getMap(world).get().getMarkerSets().get(world+"-marker-set").getMarkers().remove(world + x + z);
     }
     
     // -------------------------------------------------------------------------
@@ -210,7 +252,7 @@ public final class Listeners implements Listener
     
     private void copyIcon(BlueMapAPI api) throws IOException
     {
-        AssetStorage assetStorage = api.getMap(plotworld).get().getAssetStorage();
+        AssetStorage assetStorage = api.getMap("plotworld").get().getAssetStorage();
         
         // See if the icon is already there
         if (assetStorage.assetExists(icon))
