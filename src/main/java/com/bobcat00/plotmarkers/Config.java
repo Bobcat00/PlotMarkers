@@ -19,8 +19,11 @@ package com.bobcat00.plotmarkers;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.bukkit.configuration.ConfigurationSection;
+
+import com.plotsquared.core.plot.PlotArea;
 
 public class Config
 {
@@ -40,8 +43,12 @@ public class Config
         if (!configFile.exists())
         {
             // Get list of plot worlds
-            String[] worlds = plugin.psAPI.getPlotSquared().getPlotAreaManager().getAllWorlds();
-            Arrays.sort(worlds);
+            PlotArea[] plotAreas = plugin.psAPI.getPlotSquared().getPlotAreaManager().getAllPlotAreas();
+            Set<String> worlds = new TreeSet<String>();
+            for (PlotArea area : plotAreas)
+            {
+                worlds.add(area.getWorldName());
+            }
             
             // Write default config
             boolean firstWorld = true;
@@ -60,7 +67,7 @@ public class Config
                                       "If set to false, the average height (y value) of each plot will be used."));
                     plugin.getConfig().setComments("worlds." + world + ".custom-icon",
                         Arrays.asList("Specify a custom icon in the plugin folder if you don't want the default icon.",
-                                      "The anchor is which pixel on the marker-image that is placed at the marker's position."));
+                                      "The anchor is which pixel on the marker-image will be placed at the marker's position."));
                     firstWorld = false;
                 }
             }
@@ -125,7 +132,5 @@ public class Config
     {
         return plugin.getConfig().getInt("worlds." + world + ".custom-icon-anchor-y", 0);
     }
-    
-    // -------------------------------------------------------------------------
 
 }
