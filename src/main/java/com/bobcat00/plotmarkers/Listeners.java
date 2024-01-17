@@ -16,8 +16,9 @@
 
 package com.bobcat00.plotmarkers;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -38,7 +39,6 @@ import com.plotsquared.core.location.Location;
 import com.plotsquared.core.plot.Plot;
 import com.plotsquared.core.plot.PlotId;
 
-import de.bluecolored.bluemap.api.AssetStorage;
 import de.bluecolored.bluemap.api.BlueMapAPI;
 import de.bluecolored.bluemap.api.markers.MarkerSet;
 import de.bluecolored.bluemap.api.markers.POIMarker;
@@ -48,17 +48,14 @@ public final class Listeners implements Listener
     private PlotMarkers plugin;
     private BlueMapAPI bmAPI;
     
-    // Only output messages in this world
+    // Only output markers in these worlds
     private Set<String> worlds;
-    //private final String plotworld = "plotworld";
     
-    private final String icon = "marker_tower_red.png";
-    
-    private String iconUrl; // icon file name with partial path
+    //private final String icon = "marker_tower_red.png";
+    //private String iconUrl; // icon file name with partial path
     
     // BlueMap marker set
     private ConcurrentHashMap<String, MarkerSet> markerSets;
-    //private MarkerSet markerSet;
     
     // -------------------------------------------------------------------------
     
@@ -84,18 +81,6 @@ public final class Listeners implements Listener
                     bmAPI = api;
                     markerSets = new ConcurrentHashMap<String, MarkerSet>();
                     
-                    iconUrl = api.getMap("plotworld").get().getAssetStorage().getAssetUrl(icon);
-                    
-                    // Copy icon to asset storage
-                    try
-                    {
-                        copyIcon(api);
-                    }
-                    catch (IOException e)
-                    {
-                        plugin.getLogger().warning("IOException copying icon to asset storage.");
-                    }
-                    
                     // Create a BlueMap marker set for each world
                     for (String world : worlds)
                     {
@@ -110,6 +95,20 @@ public final class Listeners implements Listener
                             markerSets.put(world, markerSet);
                             
                             api.getMap(world).get().getMarkerSets().put(world+"-marker-set", markerSet);
+                            
+                            // Copy icon to asset storage
+                            String icon = plugin.config.getCustomIcon(world);
+                            if (icon != "")
+                            {
+                                try
+                                {
+                                    copyIcon(world, icon);
+                                }
+                                catch (IOException e)
+                                {
+                                    plugin.getLogger().warning("IOException copying " + icon + " to " + world + " asset storage.");
+                                }
+                            }
                         }
                         else
                         {
@@ -135,8 +134,6 @@ public final class Listeners implements Listener
                             plugin.getLogger().info("Created " + numMarkers + " marker" + (numMarkers == 1 ? " for " : "s for ") + world + ".");
                         }
                     }
-
-                    
                 }
             });
         });
@@ -190,7 +187,18 @@ public final class Listeners implements Listener
         Location top = plot.getTopAbs();
         Location bottom = plot.getBottomAbs();
         double x = (top.getX() + bottom.getX()) / 2.0;
-        double y = 65.0; //(top.getY() + bottom.getY()) / 2.0;
+        double y = 0.0;
+        Integer configY = plugin.config.getY(world);
+        if (configY == null)
+        {
+            // Use plot heights
+            y = (top.getY() + bottom.getY()) / 2.0;
+        }
+        else
+        {
+            // Use value from config
+            y = configY;
+        }
         double z = (top.getZ() + bottom.getZ()) / 2.0;
         
         PlotId plotId = plot.getId();
@@ -218,10 +226,14 @@ public final class Listeners implements Listener
                                             idX + ";" + idZ + "<br>" +
                                             firstPlayed + "<br>" +
                                             lastPlayed)
-                                    .icon(iconUrl, 15, 33)
                                     .build();
         
-        //markerSet.getMarkers().put(plotworld + x + z, marker);
+        if (plugin.config.getCustomIcon(world) != "")
+        {
+            String iconUrl = bmAPI.getMap(world).get().getAssetStorage().getAssetUrl(plugin.config.getCustomIcon(world));
+            marker.setIcon(iconUrl, plugin.config.getCustomIconAnchorX(world), plugin.config.getCustomIconAnchorY(world));
+        }
+        
         bmAPI.getMap(world).get().getMarkerSets().get(world+"-marker-set").getMarkers().put(world + x + z, marker);
     }
     
@@ -242,7 +254,6 @@ public final class Listeners implements Listener
         double x = (top.getX() + bottom.getX()) / 2.0;
         double z = (top.getZ() + bottom.getZ()) / 2.0;
         
-        //markerSet.getMarkers().remove(plotworld + x + z);
         bmAPI.getMap(world).get().getMarkerSets().get(world+"-marker-set").getMarkers().remove(world + x + z);
     }
     
@@ -250,19 +261,11 @@ public final class Listeners implements Listener
     
     // Copy icon to BlueMap asset storage
     
-    private void copyIcon(BlueMapAPI api) throws IOException
+    private void copyIcon(String world, String icon) throws IOException
     {
-        AssetStorage assetStorage = api.getMap("plotworld").get().getAssetStorage();
-        
-        // See if the icon is already there
-        if (assetStorage.assetExists(icon))
-        {
-            return;
-        }
-        
-        // Copy icon
-        InputStream in = plugin.getResource(icon);
-        OutputStream out = assetStorage.writeAsset(icon);
+        File inFile = new File(plugin.getDataFolder(), icon);
+        FileInputStream in = new FileInputStream(inFile);
+        OutputStream out = bmAPI.getMap(world).get().getAssetStorage().writeAsset(icon);
         
         byte[] buf = new byte[1024];
         int len;
@@ -273,7 +276,7 @@ public final class Listeners implements Listener
         out.close();
         in.close();
         
-        plugin.getLogger().info("Icon copied to map asset storage.");
+        plugin.getLogger().info("Icon " + icon + " copied to " + world + " asset storage.");
     }
 
 }

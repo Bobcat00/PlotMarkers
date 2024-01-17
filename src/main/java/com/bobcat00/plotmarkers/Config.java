@@ -26,6 +26,9 @@ public class Config
 {
     private PlotMarkers plugin;
     
+    private boolean defaultOverrideY = true;
+    private int defaultY = 63;
+    
     // Constructor
     
     public Config(PlotMarkers plugin)
@@ -44,14 +47,20 @@ public class Config
             boolean firstWorld = true;
             for (String world : worlds)
             {
-                plugin.getConfig().set("worlds." + world + ".override-y", true);
-                plugin.getConfig().set("worlds." + world + ".y", 63);
+                plugin.getConfig().set("worlds." + world + ".override-y", defaultOverrideY);
+                plugin.getConfig().set("worlds." + world + ".y", defaultY);
+                plugin.getConfig().set("worlds." + world + ".custom-icon", "");
+                plugin.getConfig().set("worlds." + world + ".custom-icon-anchor-x", 0);
+                plugin.getConfig().set("worlds." + world + ".custom-icon-anchor-y", 0);
                 if (firstWorld)
                 {
                     plugin.getConfig().setComments("worlds." + world + ".override-y",
                         Arrays.asList("override-y causes the marker to be placed at the specified y coordinate.",
                                       "Normally set y to one above the ground level of your plots.",
                                       "If set to false, the average height (y value) of each plot will be used."));
+                    plugin.getConfig().setComments("worlds." + world + ".custom-icon",
+                        Arrays.asList("Specify a custom icon in the plugin folder if you don't want the default icon.",
+                                      "The anchor is which pixel on the marker-image that is placed at the marker's position."));
                     firstWorld = false;
                 }
             }
@@ -73,4 +82,50 @@ public class Config
         return null;
     }
     
+    // -------------------------------------------------------------------------
+    
+    // Get y coordinate for this world. This returns either the defined value or
+    // null, depending on override-y.
+    
+    public Integer getY(String world)
+    {
+        if (plugin.getConfig().getBoolean("worlds." + world + ".override-y", defaultOverrideY))
+        {
+            return plugin.getConfig().getInt("worlds." + world + ".y", defaultY);
+        }
+        else
+        {
+            return null;
+        }
+    }
+    
+    // -------------------------------------------------------------------------
+    
+    // Gets the custom icon string for this world. May be an empty String.
+    
+    public String getCustomIcon(String world)
+    {
+        return plugin.getConfig().getString("worlds." + world + ".custom-icon", "");
+    }
+    
+    // -------------------------------------------------------------------------
+    
+    // Gets the custom icon string for this world. May be an empty String.
+    
+    public int getCustomIconAnchorX(String world)
+    {
+        return plugin.getConfig().getInt("worlds." + world + ".custom-icon-anchor-x", 0);
+    }
+    
+    // -------------------------------------------------------------------------
+    
+    // Gets the custom icon string for this world. May be an empty String.
+    
+    public int getCustomIconAnchorY(String world)
+    {
+        return plugin.getConfig().getInt("worlds." + world + ".custom-icon-anchor-y", 0);
+    }
+    
+    // -------------------------------------------------------------------------
+
 }
