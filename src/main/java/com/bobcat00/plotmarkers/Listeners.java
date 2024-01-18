@@ -212,12 +212,12 @@ public final class Listeners implements Listener
         
         Calendar firstPlayedDate = new GregorianCalendar();
         firstPlayedDate.setTimeInMillis(player.getFirstPlayed());
-        SimpleDateFormat format1 = new SimpleDateFormat("MM/dd/yy");
-        String firstPlayed = format1.format(firstPlayedDate.getTime());
+        SimpleDateFormat format = new SimpleDateFormat(plugin.config.getDateFormat());
+        String firstPlayed = format.format(firstPlayedDate.getTime());
 
         Calendar lastPlayedDate = new GregorianCalendar();
         lastPlayedDate.setTimeInMillis(player.getLastPlayed());
-        String lastPlayed = format1.format(lastPlayedDate.getTime());
+        String lastPlayed = format.format(lastPlayedDate.getTime());
         
         POIMarker marker = POIMarker.builder()
                                     .position((x+0.5), y, (z+0.5))

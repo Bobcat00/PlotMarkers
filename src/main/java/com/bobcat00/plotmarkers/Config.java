@@ -51,6 +51,13 @@ public class Config
             }
             
             // Write default config
+            
+            plugin.getConfig().set("date-format", "MM/dd/yy");
+            plugin.getConfig().setComments("date-format",
+                Arrays.asList("The date format in the icon pop-ups. See Java's SimpleDateFormat.",
+                              "Examples include MM/dd/yy, dd/MM/yy, and yy/MM/dd."));
+            
+            // Write world configs
             boolean firstWorld = true;
             for (String world : worlds)
             {
@@ -59,11 +66,14 @@ public class Config
                 plugin.getConfig().set("worlds." + world + ".custom-icon", "");
                 plugin.getConfig().set("worlds." + world + ".custom-icon-anchor-x", 0);
                 plugin.getConfig().set("worlds." + world + ".custom-icon-anchor-y", 0);
+                
+                plugin.getConfig().setComments("worlds",
+                        Arrays.asList("Markers will be created for each world listed below."));
                 if (firstWorld)
                 {
                     plugin.getConfig().setComments("worlds." + world + ".override-y",
                         Arrays.asList("override-y causes the marker to be placed at the specified y coordinate.",
-                                      "Normally set y to one above the ground level of your plots.",
+                                      "Normally leave this true and set y to one above the ground level of your plots.",
                                       "If set to false, the average height (y value) of each plot will be used."));
                     plugin.getConfig().setComments("worlds." + world + ".custom-icon",
                         Arrays.asList("Specify a custom icon in the plugin folder if you don't want the default icon.",
@@ -108,7 +118,7 @@ public class Config
     
     // -------------------------------------------------------------------------
     
-    // Gets the custom icon string for this world. May be an empty String.
+    // Get the custom icon string for this world. May be an empty String.
     
     public String getCustomIcon(String world)
     {
@@ -117,7 +127,7 @@ public class Config
     
     // -------------------------------------------------------------------------
     
-    // Gets the custom icon string for this world. May be an empty String.
+    // Get the custom icon string for this world. May be an empty String.
     
     public int getCustomIconAnchorX(String world)
     {
@@ -126,11 +136,20 @@ public class Config
     
     // -------------------------------------------------------------------------
     
-    // Gets the custom icon string for this world. May be an empty String.
+    // Get the custom icon string for this world. May be an empty String.
     
     public int getCustomIconAnchorY(String world)
     {
         return plugin.getConfig().getInt("worlds." + world + ".custom-icon-anchor-y", 0);
+    }
+    
+    // -------------------------------------------------------------------------
+    
+    // Get the date format
+    
+    public String getDateFormat()
+    {
+        return plugin.getConfig().getString("date-format", "MM/dd/yy");
     }
 
 }
