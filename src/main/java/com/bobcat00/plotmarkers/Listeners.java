@@ -51,23 +51,17 @@ public final class Listeners implements Listener
     // Only output markers in these worlds
     private Set<String> worlds;
     
-    //private final String icon = "marker_tower_red.png";
-    //private String iconUrl; // icon file name with partial path
-    
     // BlueMap marker set
-    private ConcurrentHashMap<String, MarkerSet> markerSets;
+    private ConcurrentHashMap<String, MarkerSet> markerSets = new ConcurrentHashMap<String, MarkerSet>();
     
     // -------------------------------------------------------------------------
     
     public Listeners(PlotMarkers plugin)
     {
         this.plugin = plugin;
+        //plugin.getServer().getPluginManager().registerEvents(this, plugin);
         plugin.psAPI.registerListener(this);
         
-        // Get list of worlds from config file
-        
-        worlds = plugin.config.getWorlds();
-
         // Complicated BlueMap stuff due to the way they do the API
 
         BlueMapAPI.onEnable(api ->
@@ -79,64 +73,76 @@ public final class Listeners implements Listener
                 public void run()
                 {
                     bmAPI = api;
-                    markerSets = new ConcurrentHashMap<String, MarkerSet>();
-                    
-                    // Create a BlueMap marker set for each world
-                    for (String world : worlds)
-                    {
-                        if (api.getMap(world).isPresent())
-                        {
-                            MarkerSet markerSet = MarkerSet.builder()
-                                                           .label("Plots")
-                                                           .toggleable(true)
-                                                           .defaultHidden(false)
-                                                           .build();
-                            
-                            markerSets.put(world, markerSet);
-                            
-                            api.getMap(world).get().getMarkerSets().put(world+"-marker-set", markerSet);
-                            
-                            // Copy icon to asset storage
-                            String icon = plugin.config.getCustomIcon(world);
-                            if (icon != "")
-                            {
-                                try
-                                {
-                                    copyIcon(world, icon);
-                                }
-                                catch (IOException e)
-                                {
-                                    plugin.getLogger().warning("IOException copying " + icon + " to " + world + " asset storage.");
-                                }
-                            }
-                        }
-                        else
-                        {
-                            plugin.getLogger().warning("No BlueMap definition for world " + world + ".");
-                            plugin.getLogger().warning("You defined a world for PlotMarkers but there is no corresponding map in BlueMap.");
-                        }
-                    }
-
-                    // Get all the PlotSquared plots
-                    Set<Plot> plots = plugin.psAPI.getAllPlots();
-
-                    // Create a marker for each plot
-                    for (Plot plot : plots)
-                    {
-                        createMarker(plot);
-                    }
-                    
-                    for (String world : worlds)
-                    {
-                        if (api.getMap(world).isPresent())
-                        {
-                            int numMarkers = api.getMap(world).get().getMarkerSets().get(world+"-marker-set").getMarkers().size();
-                            plugin.getLogger().info("Created " + numMarkers + " marker" + (numMarkers == 1 ? " for " : "s for ") + world + ".");
-                        }
-                    }
+                    initialize();
                 }
             });
         });
+    }
+    
+    // -------------------------------------------------------------------------
+    
+    // Initializes all markers after BlueMap is up or after reload
+    
+    public void initialize()
+    {
+        markerSets.clear();
+        plugin.config.reloadConfig();
+        
+        worlds = plugin.config.getWorlds();
+        
+        // Create a BlueMap marker set for each world
+        for (String world : worlds)
+        {
+            if (bmAPI.getMap(world).isPresent())
+            {
+                MarkerSet markerSet = MarkerSet.builder()
+                                               .label("Plots")
+                                               .toggleable(true)
+                                               .defaultHidden(false)
+                                               .build();
+                
+                markerSets.put(world, markerSet);
+                
+                bmAPI.getMap(world).get().getMarkerSets().put(world+"-marker-set", markerSet);
+                
+                // Copy icon to asset storage
+                String icon = plugin.config.getCustomIcon(world);
+                if (icon != "")
+                {
+                    try
+                    {
+                        copyIcon(world, icon);
+                    }
+                    catch (IOException e)
+                    {
+                        plugin.getLogger().warning("IOException copying " + icon + " to " + world + " asset storage.");
+                    }
+                }
+            }
+            else
+            {
+                plugin.getLogger().warning("No BlueMap definition for world " + world + ".");
+                plugin.getLogger().warning("You defined a world for PlotMarkers but there is no corresponding map in BlueMap.");
+            }
+        }
+
+        // Get all the PlotSquared plots
+        Set<Plot> plots = plugin.psAPI.getAllPlots();
+
+        // Create a marker for each plot
+        for (Plot plot : plots)
+        {
+            createMarker(plot);
+        }
+        
+        for (String world : worlds)
+        {
+            if (bmAPI.getMap(world).isPresent())
+            {
+                int numMarkers = bmAPI.getMap(world).get().getMarkerSets().get(world+"-marker-set").getMarkers().size();
+                plugin.getLogger().info("Created " + numMarkers + " marker" + (numMarkers == 1 ? " for " : "s for ") + world + ".");
+            }
+        }
     }
     
     // -------------------------------------------------------------------------

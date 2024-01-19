@@ -23,6 +23,7 @@ import com.plotsquared.core.PlotAPI;
 public final class PlotMarkers extends JavaPlugin {
     
     Config config;
+    Listeners listeners;
     PlotAPI psAPI;
     
     @Override
@@ -32,7 +33,11 @@ public final class PlotMarkers extends JavaPlugin {
         
         config = new Config(this);
         
-        getServer().getPluginManager().registerEvents(new Listeners(this), this);
+        // Register listeners
+        listeners = new Listeners(this);
+        
+        // Register commands
+        this.getCommand("plotmarkers").setExecutor(new Commands(this));
     }
     
     @Override

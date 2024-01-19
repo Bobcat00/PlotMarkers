@@ -151,5 +151,14 @@ public class Config
     {
         return plugin.getConfig().getString("date-format", "MM/dd/yy");
     }
+    
+    // -------------------------------------------------------------------------
+    
+    // Reload config file
+    
+    public void reloadConfig()
+    {
+        plugin.reloadConfig();
+    }
 
 }

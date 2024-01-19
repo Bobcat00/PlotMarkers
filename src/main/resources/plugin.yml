@@ -5,3 +5,14 @@ author: Bobcat00
 api-version: 1.20
 depend: [BlueMap,PlotSquared]
 softdepend: ['Multiverse-Core']
+
+commands:
+  plotmarkers:
+    description: Reload PlotMarkers
+    usage: "Usage: /plotmarkers reload"
+    permission: plotmarkers.reload
+    permission-message: You do not have permission for this command
+permissions:
+  plotmarkers.reload:
+    description: Reload PlotMarkers
+    default: op
