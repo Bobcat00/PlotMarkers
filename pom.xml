@@ -30,6 +30,28 @@
           <target>17</target>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.5.1</version>
+        <configuration>
+          <relocations>
+            <!--  bStats -->
+            <relocation>
+              <pattern>org.bstats</pattern>
+              <shadedPattern>com.bobcat00.plotmarkers.bstats</shadedPattern>
+            </relocation>
+          </relocations>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
   <repositories>
@@ -66,6 +88,13 @@
       <artifactId>BlueMapAPI</artifactId>
       <version>v2.6.2</version>
       <scope>provided</scope>
+    </dependency>
+    <!--  bStats -->
+    <dependency>
+      <groupId>org.bstats</groupId>
+      <artifactId>bstats-bukkit</artifactId>
+      <version>3.0.2</version>
+      <scope>compile</scope>
     </dependency>
   </dependencies>
 </project>

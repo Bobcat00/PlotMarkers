@@ -16,6 +16,8 @@
 
 package com.bobcat00.plotmarkers;
 
+import org.bstats.bukkit.Metrics;
+import org.bstats.charts.SimplePie;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.plotsquared.core.PlotAPI;
@@ -33,6 +35,13 @@ public final class PlotMarkers extends JavaPlugin {
         config = new Config(this);
         
         getServer().getPluginManager().registerEvents(new Listeners(this), this);
+        
+        // Metrics
+        
+        int pluginId = 20792;
+        Metrics metrics = new Metrics(this, pluginId);
+        metrics.addCustomChart(new SimplePie("worlds", () -> String.valueOf(config.getWorlds().size())));
+        getLogger().info("Metrics enabled if allowed by plugins/bStats/config.yml");
     }
     
     @Override
