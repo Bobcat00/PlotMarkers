@@ -87,7 +87,8 @@ public final class Listeners implements Listener
                     for (String worldName : worldNames)
                     {
                         // Get all the maps defined for this world
-                        if (api.getWorld(worldName).isPresent())
+                        BlueMapWorld world = api.getWorld(worldName).orElse(null);
+                        if (world != null)
                         {
                             // Markerset which will be used for all maps in this world
                             MarkerSet markerSet = MarkerSet.builder()
@@ -100,7 +101,6 @@ public final class Listeners implements Listener
                             markerSets.put(worldName, markerSet);
                             
                             // Save in each map defined for this world
-                            BlueMapWorld world = api.getWorld(worldName).get();
                             for (BlueMapMap map : world.getMaps())
                             {
                                 map.getMarkerSets().put("plotmarkers", markerSet);
@@ -138,8 +138,12 @@ public final class Listeners implements Listener
                     
                     for (String worldName : worldNames)
                     {
-                        int numMarkers = markerSets.get(worldName).getMarkers().size();
-                        plugin.getLogger().info("Created " + numMarkers + " marker" + (numMarkers == 1 ? " for " : "s for ") + worldName + ".");
+                        MarkerSet markerSet = markerSets.get(worldName);
+                        if (markerSet != null)
+                        {
+                            int numMarkers = markerSet.getMarkers().size();
+                            plugin.getLogger().info("Created " + numMarkers + " marker" + (numMarkers == 1 ? " for " : "s for ") + worldName + ".");
+                        }
                     }
                 }
             });
