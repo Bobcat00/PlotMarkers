@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,6 +54,9 @@ public final class Listeners implements Listener
 {
     private PlotMarkers plugin;
     private BlueMapAPI bmAPI;
+    
+    // Maximum runtime of initial task creating markers
+    final long maxTaskTime = 10; // msec
     
     // Only output markers in these worlds
     private Set<String> worldNames;
@@ -132,23 +136,37 @@ public final class Listeners implements Listener
                     }
 
                     // Get all the PlotSquared plots
-                    Set<Plot> plots = plugin.psAPI.getAllPlots();
-
-                    // Create a marker for each plot
-                    for (Plot plot : plots)
-                    {
-                        createMarker(plot);
-                    }
+                    final Set<Plot> plots = plugin.psAPI.getAllPlots();
+                    final Iterator<Plot> plotIterator = plots.iterator();
                     
-                    for (String worldName : worldNames)
+                    // Break this up into pieces
+                    Bukkit.getScheduler().runTaskTimer(plugin, task ->
                     {
-                        MarkerSet markerSet = markerSets.get(worldName);
-                        if (markerSet != null)
+                        long startTime = System.currentTimeMillis();
+                        
+                        // Create a marker for each plot
+                        while (plotIterator.hasNext())
                         {
-                            int numMarkers = markerSet.getMarkers().size();
-                            plugin.getLogger().info("Created " + numMarkers + " marker" + (numMarkers == 1 ? " for " : "s for ") + worldName + ".");
+                            createMarker(plotIterator.next());
+                            if (System.currentTimeMillis() - startTime > maxTaskTime)
+                            {
+                                return;
+                            }
                         }
-                    }
+                        
+                        // All done
+                        task.cancel();
+                        
+                        for (String worldName : worldNames)
+                        {
+                            MarkerSet markerSet = markerSets.get(worldName);
+                            if (markerSet != null)
+                            {
+                                int numMarkers = markerSet.getMarkers().size();
+                                plugin.getLogger().info("Created " + numMarkers + " marker" + (numMarkers == 1 ? " for " : "s for ") + worldName + ".");
+                            }
+                        }
+                    }, 0, 1); // delay 0, period 1
                 }
             });
         });
@@ -208,7 +226,7 @@ public final class Listeners implements Listener
                     createMarker(plot);
                 }
             }
-        }, 4L); // 4 ticks (markers are only updated every 10 seconds anyway)
+        }, 4L); // Delay 4 ticks (markers are only updated every 10 seconds anyway)
     }
     
     // -------------------------------------------------------------------------
