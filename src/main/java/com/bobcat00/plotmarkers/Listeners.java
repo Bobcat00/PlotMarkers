@@ -270,6 +270,12 @@ public final class Listeners implements Listener
         UUID owner = plot.getOwnerAbs();
         OfflinePlayer player = Bukkit.getOfflinePlayer(owner);
         
+        String playerName = player.getName();
+        if (playerName == null)
+        {
+            playerName = owner.toString();
+        }
+        
         Calendar firstPlayedDate = new GregorianCalendar();
         firstPlayedDate.setTimeInMillis(player.getFirstPlayed());
         SimpleDateFormat format = new SimpleDateFormat(plugin.config.getDateFormat());
@@ -290,8 +296,8 @@ public final class Listeners implements Listener
         
         POIMarker marker = POIMarker.builder()
                                     .position((x+0.5), y, (z+0.5))
-                                    .label(player.getName())
-                                    .detail(player.getName() + "<br>" +
+                                    .label(playerName)
+                                    .detail(playerName + "<br>" +
                                             idX + ";" + idZ + "<br>" +
                                             firstPlayed + "<br>" +
                                             lastPlayed)
