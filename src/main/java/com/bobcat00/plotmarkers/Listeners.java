@@ -29,13 +29,17 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import com.google.common.eventbus.Subscribe;
 import com.plotsquared.core.events.PlotClaimedNotifyEvent;
 import com.plotsquared.core.events.post.PostPlotChangeOwnerEvent;
 import com.plotsquared.core.events.post.PostPlotDeleteEvent;
 import com.plotsquared.core.location.Location;
+import com.plotsquared.core.player.PlotPlayer;
 import com.plotsquared.core.plot.Plot;
 import com.plotsquared.core.plot.PlotId;
 
@@ -182,6 +186,33 @@ public final class Listeners implements Listener
     
     // -------------------------------------------------------------------------
     
+    // Player quit or was kicked
+    
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event)
+    {
+        // Update all this player's markers
+        Player player = event.getPlayer();
+        final UUID uuid = player.getUniqueId();
+        
+        // Give the player time to logout
+        Bukkit.getScheduler().runTaskLater(plugin, new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                PlotPlayer<?> plotPlayer = plugin.psAPI.wrapPlayer(uuid);
+                Set<Plot> plots = plotPlayer.getPlots();
+                for (Plot plot : plots)
+                {
+                    createMarker(plot);
+                }
+            }
+        }, 4L); // 4 ticks (markers are only updated every 10 seconds anyway)
+    }
+    
+    // -------------------------------------------------------------------------
+    
     // Create a marker. This will overwrite any existing marker.
     
     private void createMarker(Plot plot)
@@ -227,7 +258,16 @@ public final class Listeners implements Listener
         String firstPlayed = format.format(firstPlayedDate.getTime());
 
         Calendar lastPlayedDate = new GregorianCalendar();
-        lastPlayedDate.setTimeInMillis(player.getLastPlayed());
+        long lastPlayedMillis = player.getLastPlayed();
+        if (lastPlayedMillis == 0)
+        {
+            // New player, use first played date as last played date
+            lastPlayedDate = firstPlayedDate;
+        }
+        else
+        {
+            lastPlayedDate.setTimeInMillis(lastPlayedMillis);
+        }
         String lastPlayed = format.format(lastPlayedDate.getTime());
         
         POIMarker marker = POIMarker.builder()
