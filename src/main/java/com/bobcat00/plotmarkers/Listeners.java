@@ -55,7 +55,7 @@ public final class Listeners implements Listener
     private PlotMarkers plugin;
     private BlueMapAPI bmAPI;
     
-    // Maximum runtime of initial task creating markers
+    // Maximum runtime of task creating/updating markers
     final long maxTaskTime = 10; // msec
     
     // Only output markers in these worlds
@@ -166,7 +166,7 @@ public final class Listeners implements Listener
                                 plugin.getLogger().info("Created " + numMarkers + " marker" + (numMarkers == 1 ? " for " : "s for ") + worldName + ".");
                             }
                         }
-                    }, 0, 1); // delay 0, period 1
+                    }, 0L, 1L); // delay 0, period 1
                 }
             });
         });
@@ -211,22 +211,29 @@ public final class Listeners implements Listener
     {
         // Update all this player's markers
         Player player = event.getPlayer();
-        final UUID uuid = player.getUniqueId();
+        UUID uuid = player.getUniqueId();
+        PlotPlayer<?> plotPlayer = plugin.psAPI.wrapPlayer(uuid);
+        final Set<Plot> plots = plotPlayer.getPlots();
+        final Iterator<Plot> plotIterator = plots.iterator();
         
-        // Give the player time to logout
-        Bukkit.getScheduler().runTaskLater(plugin, new Runnable()
+        // Give the player time to logout and update in pieces
+        Bukkit.getScheduler().runTaskTimer(plugin, task ->
         {
-            @Override
-            public void run()
+            long startTime = System.currentTimeMillis();
+            
+            while (plotIterator.hasNext())
             {
-                PlotPlayer<?> plotPlayer = plugin.psAPI.wrapPlayer(uuid);
-                Set<Plot> plots = plotPlayer.getPlots();
-                for (Plot plot : plots)
+                createMarker(plotIterator.next());
+                if (System.currentTimeMillis() - startTime > maxTaskTime)
                 {
-                    createMarker(plot);
+                    return;
                 }
             }
-        }, 4L); // Delay 4 ticks (markers are only updated every 10 seconds anyway)
+            
+            // All done
+            task.cancel();
+            
+        }, 4L, 1L); // Delay 4 ticks, period 1 tick
     }
     
     // -------------------------------------------------------------------------
@@ -273,6 +280,7 @@ public final class Listeners implements Listener
         String playerName = player.getName();
         if (playerName == null)
         {
+            // No player name, use UUID instead
             playerName = owner.toString();
         }
         
