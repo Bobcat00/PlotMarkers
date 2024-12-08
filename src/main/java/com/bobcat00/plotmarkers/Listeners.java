@@ -20,56 +20,33 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.Iterator;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerQuitEvent;
-
-import com.google.common.eventbus.Subscribe;
-import com.plotsquared.core.events.PlotClaimedNotifyEvent;
-import com.plotsquared.core.events.post.PostPlotChangeOwnerEvent;
-import com.plotsquared.core.events.post.PostPlotDeleteEvent;
-import com.plotsquared.core.location.Location;
-import com.plotsquared.core.player.PlotPlayer;
-import com.plotsquared.core.plot.Plot;
-import com.plotsquared.core.plot.PlotId;
 
 import de.bluecolored.bluemap.api.BlueMapAPI;
 import de.bluecolored.bluemap.api.BlueMapMap;
 import de.bluecolored.bluemap.api.BlueMapWorld;
 import de.bluecolored.bluemap.api.markers.MarkerSet;
-import de.bluecolored.bluemap.api.markers.POIMarker;
 
 public final class Listeners implements Listener
 {
-    private PlotMarkers plugin;
-    private BlueMapAPI bmAPI;
+    private PlotMarkers  plugin;
+    private BlueMapAPI   bmAPI;
+    private PoiMarkers   poiMarkers;
+    private ShapeMarkers shapeMarkers;
     
     // Maximum runtime of task creating/updating markers
     final long maxTaskTime = 10; // msec
-    
-    // Only output markers in these worlds
-    private Set<String> worldNames;
-    
-    // BlueMap marker set
-    private ConcurrentHashMap<String, MarkerSet> markerSets;
     
     // -------------------------------------------------------------------------
     
     public Listeners(PlotMarkers plugin)
     {
         this.plugin = plugin;
-        plugin.psAPI.registerListener(this);
+        // plugin.psAPI.registerListener(this);
         
         // Complicated BlueMap stuff due to the way they do the API
 
@@ -83,35 +60,45 @@ public final class Listeners implements Listener
                 {
                     // BlueMap Worlds -> Maps -> MarkerSets - > Markers
                     bmAPI = api;
+                    ConcurrentHashMap<String, MarkerSet> poiMarkerSets = new ConcurrentHashMap<String, MarkerSet>();
+                    ConcurrentHashMap<String, MarkerSet> shapeMarkerSets = new ConcurrentHashMap<String, MarkerSet>();
                     
                     plugin.config.reloadConfig();
                     
                     // Get list of worlds from config file
-                    worldNames = plugin.config.getWorlds();
+                    Set<String> worldNames = plugin.config.getWorlds();
                     
-                    markerSets = new ConcurrentHashMap<String, MarkerSet>();
-                    
-                    // Create a BlueMap marker set for each world in our config
+                    // Create BlueMap marker sets for each world in our config
                     for (String worldName : worldNames)
                     {
                         // Get all the maps defined for this world
                         BlueMapWorld world = api.getWorld(worldName).orElse(null);
                         if (world != null)
                         {
-                            // Markerset which will be used for all maps in this world
-                            MarkerSet markerSet = MarkerSet.builder()
+                            // Markersets which will be used for all maps in this world
+                            MarkerSet poiMarkerSet = MarkerSet.builder()
                                                            .label("Plots")
                                                            .toggleable(true)
                                                            .defaultHidden(false)
+                                                           .sorting(0)
                                                            .build();
                             
+                            MarkerSet shapeMarkerSet = MarkerSet.builder()
+                                                           .label("Shapes")
+                                                           .toggleable(true)
+                                                           .defaultHidden(false)
+                                                           .sorting(1)
+                                                           .build();
+     
                             // Save for our use
-                            markerSets.put(worldName, markerSet);
+                            poiMarkerSets.put(worldName, poiMarkerSet);
+                            shapeMarkerSets.put(worldName, shapeMarkerSet);
                             
                             // Save in each map defined for this world
                             for (BlueMapMap map : world.getMaps())
                             {
-                                map.getMarkerSets().put("plotmarkers", markerSet);
+                                map.getMarkerSets().put("poimarkers", poiMarkerSet);
+                                map.getMarkerSets().put("shapemarkers", shapeMarkerSet);
                                 
                                 // Copy icon to asset storage
                                 String icon = plugin.config.getCustomIcon(worldName);
@@ -134,212 +121,13 @@ public final class Listeners implements Listener
                             plugin.getLogger().warning("You defined a world for PlotMarkers but there is no corresponding world in BlueMap.");
                         }
                     }
-
-                    // Get all the PlotSquared plots
-                    final Set<Plot> plots = plugin.psAPI.getAllPlots();
-                    final Iterator<Plot> plotIterator = plots.iterator();
                     
-                    // Break this up into pieces
-                    Bukkit.getScheduler().runTaskTimer(plugin, task ->
-                    {
-                        long startTime = System.currentTimeMillis();
-                        
-                        // Create a marker for each plot
-                        while (plotIterator.hasNext())
-                        {
-                            createMarker(plotIterator.next());
-                            if (System.currentTimeMillis() - startTime > maxTaskTime)
-                            {
-                                return;
-                            }
-                        }
-                        
-                        // All done
-                        task.cancel();
-                        
-                        for (String worldName : worldNames)
-                        {
-                            MarkerSet markerSet = markerSets.get(worldName);
-                            if (markerSet != null)
-                            {
-                                int numMarkers = markerSet.getMarkers().size();
-                                plugin.getLogger().info("Created " + numMarkers + " marker" + (numMarkers == 1 ? " for " : "s for ") + worldName + ".");
-                            }
-                        }
-                    }, 0L, 1L); // delay 0, period 1
+                    poiMarkers = new PoiMarkers(plugin, bmAPI, poiMarkerSets);
+                    shapeMarkers = new ShapeMarkers(plugin, bmAPI, shapeMarkerSets);
+
                 }
             });
         });
-    }
-    
-    // -------------------------------------------------------------------------
-    
-    // Handle /plot claim and /plot auto
-    
-    @Subscribe
-    public void onPlotClaimNotify(PlotClaimedNotifyEvent e)
-    {
-        createMarker(e.getPlot());
-    }
-    
-    // -------------------------------------------------------------------------
-    
-    // Handle /plot setowner
-    
-    @Subscribe
-    public void onPlotChangeOwner(PostPlotChangeOwnerEvent e)
-    {
-        createMarker(e.getPlot());
-    }
-    
-    // -------------------------------------------------------------------------
-    
-    // Handle /plot delete
-    
-    @Subscribe
-    public void onPlotDelete(PostPlotDeleteEvent e)
-    {
-        removeMarker(e.getPlot());
-    }
-    
-    // -------------------------------------------------------------------------
-    
-    // Player quit or was kicked
-    
-    @EventHandler
-    public void onPlayerQuit(PlayerQuitEvent event)
-    {
-        // Update all this player's markers
-        Player player = event.getPlayer();
-        UUID uuid = player.getUniqueId();
-        PlotPlayer<?> plotPlayer = plugin.psAPI.wrapPlayer(uuid);
-        final Set<Plot> plots = plotPlayer.getPlots();
-        final Iterator<Plot> plotIterator = plots.iterator();
-        
-        // Give the player time to logout and update in pieces
-        Bukkit.getScheduler().runTaskTimer(plugin, task ->
-        {
-            long startTime = System.currentTimeMillis();
-            
-            while (plotIterator.hasNext())
-            {
-                createMarker(plotIterator.next());
-                if (System.currentTimeMillis() - startTime > maxTaskTime)
-                {
-                    return;
-                }
-            }
-            
-            // All done
-            task.cancel();
-            
-        }, 4L, 1L); // Delay 4 ticks, period 1 tick
-    }
-    
-    // -------------------------------------------------------------------------
-    
-    // Create a marker. This will overwrite any existing marker.
-    
-    private void createMarker(Plot plot)
-    {
-        if (!worldNames.contains(plot.getWorldName()) ||
-            !bmAPI.getMap(plot.getWorldName()).isPresent())
-        {
-            return;
-        }
-        // Calculate position and ID
-        
-        String worldName = plot.getWorldName();
-        
-        Location top = plot.getTopAbs();
-        Location bottom = plot.getBottomAbs();
-        double x = (top.getX() + bottom.getX()) / 2.0;
-        double y = 0.0;
-        Integer configY = plugin.config.getY(worldName);
-        if (configY == null)
-        {
-            // Use plot heights
-            y = (top.getY() + bottom.getY()) / 2.0;
-        }
-        else
-        {
-            // Use value from config
-            y = configY;
-        }
-        double z = (top.getZ() + bottom.getZ()) / 2.0;
-        
-        PlotId plotId = plot.getId();
-        int idX = plotId.getX();
-        int idZ = plotId.getY();
-        
-        // Get owner info
-        
-        UUID owner = plot.getOwnerAbs();
-        OfflinePlayer player = Bukkit.getOfflinePlayer(owner);
-        
-        String playerName = player.getName();
-        if (playerName == null)
-        {
-            // No player name, use UUID instead
-            playerName = owner.toString();
-        }
-        
-        Calendar firstPlayedDate = new GregorianCalendar();
-        firstPlayedDate.setTimeInMillis(player.getFirstPlayed());
-        SimpleDateFormat format = new SimpleDateFormat(plugin.config.getDateFormat());
-        String firstPlayed = format.format(firstPlayedDate.getTime());
-
-        Calendar lastPlayedDate = new GregorianCalendar();
-        long lastPlayedMillis = player.getLastPlayed();
-        if (lastPlayedMillis == 0)
-        {
-            // New player, use first played date as last played date
-            lastPlayedDate = firstPlayedDate;
-        }
-        else
-        {
-            lastPlayedDate.setTimeInMillis(lastPlayedMillis);
-        }
-        String lastPlayed = format.format(lastPlayedDate.getTime());
-        
-        POIMarker marker = POIMarker.builder()
-                                    .position((x+0.5), y, (z+0.5))
-                                    .label(playerName)
-                                    .detail(playerName + "<br>" +
-                                            idX + ";" + idZ + "<br>" +
-                                            firstPlayed + "<br>" +
-                                            lastPlayed)
-                                    .build();
-        
-        if (plugin.config.getCustomIcon(worldName) != "")
-        {
-            String iconUrl = bmAPI.getMap(worldName).get().getAssetStorage().getAssetUrl(plugin.config.getCustomIcon(worldName));
-            marker.setIcon(iconUrl, plugin.config.getCustomIconAnchorX(worldName), plugin.config.getCustomIconAnchorY(worldName));
-        }
-        
-        MarkerSet markerSet = markerSets.get(worldName);
-        markerSet.put(worldName + x + z, marker);
-    }
-    
-    // -------------------------------------------------------------------------
-    
-    // Remove a marker
-    
-    private void removeMarker(Plot plot)
-    {
-        if (!worldNames.contains(plot.getWorldName()) ||
-            !bmAPI.getMap(plot.getWorldName()).isPresent())
-        {
-            return;
-        }
-        String worldName = plot.getWorldName();
-        Location top = plot.getTopAbs();
-        Location bottom = plot.getBottomAbs();
-        double x = (top.getX() + bottom.getX()) / 2.0;
-        double z = (top.getZ() + bottom.getZ()) / 2.0;
-        
-        MarkerSet markerSet = markerSets.get(worldName);
-        markerSet.remove(worldName + x + z);
     }
     
     // -------------------------------------------------------------------------
