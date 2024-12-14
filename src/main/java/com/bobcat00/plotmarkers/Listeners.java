@@ -38,9 +38,6 @@ public final class Listeners implements Listener
     private PoiMarkers   poiMarkers;
     private ShapeMarkers shapeMarkers;
     
-    // Maximum runtime of task creating/updating markers
-    final long maxTaskTime = 10; // msec
-    
     // -------------------------------------------------------------------------
     
     public Listeners(PlotMarkers plugin)

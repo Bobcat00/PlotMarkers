@@ -39,6 +39,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import com.flowpowered.math.vector.Vector2d;
 import com.flowpowered.math.vector.Vector2i;
 import com.google.common.eventbus.Subscribe;
+import com.plotsquared.core.PlotSquared;
+import com.plotsquared.core.configuration.file.YamlConfiguration;
 import com.plotsquared.core.events.PlotClaimedNotifyEvent;
 import com.plotsquared.core.events.PlotDeleteEvent;
 import com.plotsquared.core.events.PlotUnlinkEvent;
@@ -72,6 +74,9 @@ public final class ShapeMarkers implements Listener
     // BlueMap marker set
     private ConcurrentHashMap<String, MarkerSet> markerSets;
     
+    // Size of plots in each world
+    private ConcurrentHashMap<String, Vector2d> plotSize = new ConcurrentHashMap<String, Vector2d>();
+    
     // Maps to handle passing data between events
     private Map<String, List<PlotId>> pendingUnlink = Collections.synchronizedMap(new HashMap<String, List<PlotId>>());
     private Map<String, List<PlotId>> pendingDelete = Collections.synchronizedMap(new HashMap<String, List<PlotId>>());
@@ -89,6 +94,13 @@ public final class ShapeMarkers implements Listener
         
         // Get list of worlds from config file
         worldNames = plugin.config.getWorlds();
+        
+        // Calculate the plot size for each world
+        for (String worldName : worldNames)
+        {
+            Vector2d size = getPlotSize(worldName);
+            plotSize.put(worldName,  size);
+        }
         
         // Get all the PlotSquared plots
         final Set<Plot> plots = plugin.psAPI.getAllPlots();
@@ -367,7 +379,7 @@ public final class ShapeMarkers implements Listener
         
         Vector2i[] plotCoordinates = basePlot.getConnectedPlots().stream().
                                      map(plot -> new Vector2i(plot.getId().getX()-1, plot.getId().getY()-1)).toArray(Vector2i[]::new);
-        Collection<Cheese> platter = Cheese.createPlatterFromCells(Vector2d.from(80, 80), plotCoordinates); // ***** TEMPORARY SIZE *****
+        Collection<Cheese> platter = Cheese.createPlatterFromCells(plotSize.get(worldName), plotCoordinates);
         
         for (Cheese cheese : platter)
         {
@@ -408,6 +420,24 @@ public final class ShapeMarkers implements Listener
 
         MarkerSet markerSet = markerSets.get(worldName);
         markerSet.remove("shape" + worldName + idX + idZ);
+    }
+    
+    // -------------------------------------------------------------------------
+    
+    // Get the plot size for a world. It doesn't appear possible to read this
+    // from the API or to get plots if the the world is empty. So we'll just get
+    // it from the PlotSquared world configuration.
+    
+    private Vector2d getPlotSize(String world)
+    {
+        PlotSquared plotSquared = PlotSquared.get();
+        YamlConfiguration worldConfig = plotSquared.getWorldConfiguration();
+        
+        int plotSize = worldConfig.getInt("worlds." + world + ".plot.size");
+        int roadWidth = worldConfig.getInt("worlds." + world + ".road.width");
+        double totalSize = (double)(plotSize + roadWidth);
+        
+        return Vector2d.from(totalSize, totalSize);
     }
     
 }
