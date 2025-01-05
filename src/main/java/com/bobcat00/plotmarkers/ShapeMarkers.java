@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -104,6 +105,7 @@ public final class ShapeMarkers implements Listener
         
         // Get all the PlotSquared plots
         final Set<Plot> plots = plugin.psAPI.getAllPlots();
+        plugin.getLogger().log(Level.FINE, plots.size()+" available plots.");
         final Iterator<Plot> plotIterator = plots.iterator();
         
         // Break this up into pieces
@@ -315,7 +317,7 @@ public final class ShapeMarkers implements Listener
     private void createShape(Plot basePlot)
     {
         if (!worldNames.contains(basePlot.getWorldName()) ||
-                !bmAPI.getMap(basePlot.getWorldName()).isPresent())
+                !bmAPI.getMap(basePlot.getWorldName().toLowerCase()).isPresent())
             {
                 return;
             }

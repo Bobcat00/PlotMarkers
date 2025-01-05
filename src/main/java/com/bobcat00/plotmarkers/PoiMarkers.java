@@ -286,7 +286,7 @@ public final class PoiMarkers implements Listener
                                             lastPlayed)
                                     .build();
         
-        if (plugin.config.getCustomIcon(worldName) != "")
+        if (!plugin.config.getCustomIcon(worldName).isEmpty())
         {
             String iconUrl = bmAPI.getMap(worldName).get().getAssetStorage().getAssetUrl(plugin.config.getCustomIcon(worldName));
             marker.setIcon(iconUrl, plugin.config.getCustomIconAnchorX(worldName), plugin.config.getCustomIconAnchorY(worldName));
