@@ -66,11 +66,16 @@ public class Config
                 plugin.getConfig().set("worlds." + world + ".custom-icon", "");
                 plugin.getConfig().set("worlds." + world + ".custom-icon-anchor-x", 0);
                 plugin.getConfig().set("worlds." + world + ".custom-icon-anchor-y", 0);
+                plugin.getConfig().set("worlds." + world + ".fill-color", "#3388ff");
+                plugin.getConfig().set("worlds." + world + ".fill-opacity", 0.1f);
+                plugin.getConfig().set("worlds." + world + ".line-color", "#3388ff");
+                plugin.getConfig().set("worlds." + world + ".line-opacity", 1.0f);
+                plugin.getConfig().set("worlds." + world + ".line-width", 5);
                 
-                plugin.getConfig().setComments("worlds",
-                        Arrays.asList("Markers will be created for each world listed below."));
                 if (firstWorld)
                 {
+                    plugin.getConfig().setComments("worlds",
+                            Arrays.asList("Markers will be created for each world listed below."));
                     plugin.getConfig().setComments("worlds." + world + ".override-y",
                         Arrays.asList("override-y causes the marker to be placed at the specified y coordinate.",
                                       "Normally leave this true and set y to one above the ground level of your plots.",
@@ -78,11 +83,23 @@ public class Config
                     plugin.getConfig().setComments("worlds." + world + ".custom-icon",
                         Arrays.asList("Specify a custom icon in the plugin folder if you don't want the default icon.",
                                       "The anchor is which pixel on the marker-image will be placed at the marker's position."));
+                    plugin.getConfig().setComments("worlds." + world + ".fill-color",
+                        Arrays.asList("Set the color and opacity for the fill and line areas, and the line width.",
+                                      "Color is '#rrggbb'. Opacity is 0.0 - 1.0"));
                     firstWorld = false;
                 }
             }
             plugin.saveConfig();
         }
+    }
+    
+    // -------------------------------------------------------------------------
+    
+    // Get the date format
+    
+    public String getDateFormat()
+    {
+        return plugin.getConfig().getString("date-format", "MM/dd/yy");
     }
     
     // -------------------------------------------------------------------------
@@ -145,11 +162,75 @@ public class Config
     
     // -------------------------------------------------------------------------
     
-    // Get the date format
+    // Get the fill color for this world
     
-    public String getDateFormat()
+    public int getFillColor(String world)
     {
-        return plugin.getConfig().getString("date-format", "MM/dd/yy");
+        int color = 0x3388ff;
+        String colorStr = plugin.getConfig().getString("worlds." + world + ".fill-color", "#3388ff");
+        try
+        {
+            if (colorStr.charAt(0) != '#')
+            {
+                throw new NumberFormatException();
+            }
+            color = Integer.parseUnsignedInt(colorStr.substring(1), 16);
+        }
+        catch (NumberFormatException e)
+        {
+            plugin.getLogger().warning("Invalid color for " + world + ".fill-color: " + e.getMessage());
+        }
+        return color;
+    }
+    
+    // -------------------------------------------------------------------------
+    
+    // Get the fill opacity for this world
+    
+    public float getFillOpacity(String world)
+    {
+        return (float)plugin.getConfig().getDouble("worlds." + world + ".fill-opacity", 0.1);
+    }
+    
+    // -------------------------------------------------------------------------
+    
+    // Get the line color for this world
+    
+    public int getLineColor(String world)
+    {
+        int color = 0x3388ff;
+        String colorStr = plugin.getConfig().getString("worlds." + world + ".line-color", "#3388ff");
+        try
+        {
+            if (colorStr.charAt(0) != '#')
+            {
+                throw new NumberFormatException();
+            }
+            color = Integer.parseUnsignedInt(colorStr.substring(1), 16);
+        }
+        catch (NumberFormatException e)
+        {
+            plugin.getLogger().warning("Invalid color for " + world + ".line-color: " + e.getMessage());
+        }
+        return color;
+    }
+    
+    // -------------------------------------------------------------------------
+    
+    // Get the line opacity for this world
+    
+    public float getLineOpacity(String world)
+    {
+        return (float)plugin.getConfig().getDouble("worlds." + world + ".line-opacity", 1.0);
+    }
+    
+    // -------------------------------------------------------------------------
+    
+    // Get the line width for this world
+    
+    public int getLineWidth(String world)
+    {
+        return plugin.getConfig().getInt("worlds." + world + ".line-width", 5);
     }
     
     // -------------------------------------------------------------------------

@@ -43,7 +43,6 @@ public final class Listeners implements Listener
     public Listeners(PlotMarkers plugin)
     {
         this.plugin = plugin;
-        // plugin.psAPI.registerListener(this);
         
         // Complicated BlueMap stuff due to the way they do the API
 

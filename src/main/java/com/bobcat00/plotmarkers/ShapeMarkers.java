@@ -392,9 +392,9 @@ public final class ShapeMarkers implements Listener
                             firstPlayed + "<br>" +
                             lastPlayed)
                     .depthTestEnabled(false)
-                    .lineWidth(5)
-                    .lineColor(new Color(51, 136, 255, 1.0f))
-                    .fillColor(new Color(51, 136, 255, 0.1f))
+                    .lineWidth(plugin.config.getLineWidth(worldName))
+                    .fillColor(new Color(plugin.config.getFillColor(worldName), plugin.config.getFillOpacity(worldName)))
+                    .lineColor(new Color(plugin.config.getLineColor(worldName), plugin.config.getLineOpacity(worldName)))
                     .build();
             
             MarkerSet markerSet = markerSets.get(worldName);
