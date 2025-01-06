@@ -107,7 +107,7 @@ public final class Listeners implements Listener
                                     }
                                     catch (IOException e)
                                     {
-                                        plugin.getLogger().log(Level.WARNING, "IOException copying " + icon + " to " + map.getId() + " asset storage.", e);
+                                        plugin.getLogger().warning("IOException copying " + icon + " to " + map.getId() + " asset storage.");
                                     }
                                 }
                             }
