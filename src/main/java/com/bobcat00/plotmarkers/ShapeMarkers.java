@@ -317,7 +317,7 @@ public final class ShapeMarkers implements Listener
     private void createShape(Plot basePlot)
     {
         if (!worldNames.contains(basePlot.getWorldName()) ||
-                !bmAPI.getMap(basePlot.getWorldName().toLowerCase()).isPresent())
+                !bmAPI.getMap(basePlot.getWorldName()).isPresent())
             {
                 return;
             }
