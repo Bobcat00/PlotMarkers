@@ -98,7 +98,7 @@ public final class Listeners implements Listener
                                 
                                 // Copy icon to asset storage
                                 String icon = plugin.config.getCustomIcon(worldName);
-                                if (icon != "")
+                                if (!icon.isEmpty())
                                 {
                                     try
                                     {
@@ -106,7 +106,7 @@ public final class Listeners implements Listener
                                     }
                                     catch (IOException e)
                                     {
-                                        plugin.getLogger().warning("IOException copying " + icon + " to " + map.getId() + " asset storage.");
+                                        plugin.getLogger().warning("IOException copying " + icon + " to " + map.getId() + " asset storage: " + e.getMessage());
                                     }
                                 }
                             }
