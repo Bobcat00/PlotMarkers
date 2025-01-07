@@ -18,6 +18,7 @@ package com.bobcat00.plotmarkers;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -46,6 +47,8 @@ import com.plotsquared.core.plot.Plot;
 import com.plotsquared.core.plot.PlotId;
 
 import de.bluecolored.bluemap.api.BlueMapAPI;
+import de.bluecolored.bluemap.api.BlueMapMap;
+import de.bluecolored.bluemap.api.BlueMapWorld;
 import de.bluecolored.bluemap.api.markers.MarkerSet;
 import de.bluecolored.bluemap.api.markers.POIMarker;
 
@@ -217,14 +220,14 @@ public final class PoiMarkers implements Listener
     
     private void createMarker(Plot plot)
     {
-        if (!worldNames.contains(plot.getWorldName()) ||
-            !bmAPI.getMap(plot.getWorldName()).isPresent())
+        String worldName = plot.getWorldName();
+        
+        if (!worldNames.contains(worldName))
         {
             return;
         }
-        // Calculate position and ID
         
-        String worldName = plot.getWorldName();
+        // Calculate position and ID
         
         Location top = plot.getTopAbs();
         Location bottom = plot.getBottomAbs();
@@ -288,8 +291,19 @@ public final class PoiMarkers implements Listener
         
         if (!plugin.config.getCustomIcon(worldName).isEmpty())
         {
-            String iconUrl = bmAPI.getMap(worldName).get().getAssetStorage().getAssetUrl(plugin.config.getCustomIcon(worldName));
-            marker.setIcon(iconUrl, plugin.config.getCustomIconAnchorX(worldName), plugin.config.getCustomIconAnchorY(worldName));
+            // Set icon to be used
+            BlueMapWorld world = bmAPI.getWorld(worldName).orElse(null);
+            if (world != null)
+            {
+                // Just grab any old map in the Collection because they should all have the same icon saved
+                Collection<BlueMapMap> maps = world.getMaps();
+                if (!maps.isEmpty())
+                {
+                    BlueMapMap map = maps.iterator().next();
+                    String iconUrl = map.getAssetStorage().getAssetUrl(plugin.config.getCustomIcon(worldName));
+                    marker.setIcon(iconUrl, plugin.config.getCustomIconAnchorX(worldName), plugin.config.getCustomIconAnchorY(worldName));
+                }
+            }
         }
         
         MarkerSet markerSet = markerSets.get(worldName);

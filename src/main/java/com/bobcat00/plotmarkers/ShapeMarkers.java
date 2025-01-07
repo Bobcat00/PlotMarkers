@@ -314,15 +314,14 @@ public final class ShapeMarkers implements Listener
     
     private void createShape(Plot basePlot)
     {
-        if (!worldNames.contains(basePlot.getWorldName()) ||
-                !bmAPI.getMap(basePlot.getWorldName()).isPresent())
-            {
-                return;
-            }
+        String worldName = basePlot.getWorldName();
+        
+        if (!worldNames.contains(worldName))
+        {
+            return;
+        }
         
         // Calculate y position
-        
-        String worldName = basePlot.getWorldName();
         
         double y = 0.0;
         Integer configY = plugin.config.getY(worldName);
