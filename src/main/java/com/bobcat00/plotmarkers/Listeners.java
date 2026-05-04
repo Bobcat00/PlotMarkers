@@ -35,7 +35,9 @@ public final class Listeners implements Listener
 {
     private PlotMarkers  plugin;
     private BlueMapAPI   bmAPI;
+    @SuppressWarnings("unused")
     private PoiMarkers   poiMarkers;
+    @SuppressWarnings("unused")
     private ShapeMarkers shapeMarkers;
     
     // -------------------------------------------------------------------------
@@ -59,6 +61,7 @@ public final class Listeners implements Listener
                     ConcurrentHashMap<String, MarkerSet> poiMarkerSets = new ConcurrentHashMap<String, MarkerSet>();
                     ConcurrentHashMap<String, MarkerSet> shapeMarkerSets = new ConcurrentHashMap<String, MarkerSet>();
                     
+                    plugin.config.initialize();
                     plugin.config.reloadConfig();
                     
                     // Get list of worlds from config file

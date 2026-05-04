@@ -18,6 +18,7 @@ package com.bobcat00.plotmarkers;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -37,19 +38,38 @@ public class Config
     public Config(PlotMarkers plugin)
     {
         this.plugin = plugin;
-        
+    }
+    
+    // -------------------------------------------------------------------------
+    
+    // Initialize the config, to be called after BlueMap is running
+    
+    public void initialize()
+    {
         // Check if config.yml exists
         File configFile = new File(plugin.getDataFolder(), "config.yml");
         if (!configFile.exists())
         {
             // Get list of plot worlds
+            
             PlotArea[] plotAreas = plugin.psAPI.getPlotSquared().getPlotAreaManager().getAllPlotAreas();
+            if (plotAreas.length == 0)
+            {
+                plugin.getLogger().warning("PlotSquared returned zero plot areas.");
+                return;
+            }
+            
             Set<String> worlds = new TreeSet<String>();
             for (PlotArea area : plotAreas)
             {
                 worlds.add(area.getWorldName());
             }
-            
+            if (worlds.isEmpty())
+            {
+                plugin.getLogger().warning("PlotSquared returned zero plot worlds.");
+                return;
+            }
+
             // Write default config
             
             plugin.getConfig().set("date-format", "MM/dd/yy");
@@ -113,7 +133,7 @@ public class Config
         {
             return confSect.getKeys(false);
         }
-        return null;
+        return Collections.<String>emptySet();
     }
     
     // -------------------------------------------------------------------------
